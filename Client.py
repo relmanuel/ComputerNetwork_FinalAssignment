@@ -12,8 +12,6 @@ filename = sys.argv[3]
 try:
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientSocket.connect((host, port))
-
-    # This line simulates a basic TCP request (not real HTTP)
     clientSocket.send(filename.encode())
 
     print(f"[CLIENT] Go to -> http://{host}:{port}/{filename}")

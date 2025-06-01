@@ -1,0 +1,64 @@
+import socket
+import os
+
+def handle_client(connectionSocket, addr):
+    try:
+        print(f"[{addr}] Connected")
+
+        request = connectionSocket.recv(1024).decode(errors='ignore')
+        print(f"[{addr}] --- RAW REQUEST ---\n{request}")
+
+        request_line = request.splitlines()[0]
+        print(f"[{addr}] GET LINE: {request_line}")
+
+        filename = request_line.split()[1].lstrip('/')
+        print(f"[{addr}] Requested File: {filename}")
+
+        if filename == "" or filename == "favicon.ico":
+            filename = "index.html"
+
+        if os.path.isfile(filename):
+            if filename.endswith(('.html', '.htm')):
+                with open(filename, 'r', encoding='utf-8') as f:
+                    outputdata = f.read()
+                response_header = "HTTP/1.1 200 OK\r\n\r\n"
+                connectionSocket.send(response_header.encode())
+                connectionSocket.send(outputdata.encode())
+                print(f"[{addr}] --- FILE CONTENT ---\n{outputdata}")
+            else:
+                with open(filename, 'rb') as f:
+                    outputdata = f.read()
+                response_header = "HTTP/1.1 200 OK\r\n\r\n"
+                connectionSocket.send(response_header.encode())
+                connectionSocket.send(outputdata)
+                print(f"[{addr}] File sent as binary (not printed)")
+        else:
+            response_header = "HTTP/1.1 404 Not Found\r\n\r\n"
+            response_body = "<html><body><h1>404 Not Found</h1></body></html>"
+            connectionSocket.send(response_header.encode())
+            connectionSocket.send(response_body.encode())
+            print(f"[{addr}] 404 Not Found: {filename}")
+
+    except Exception as e:
+        print(f"[{addr}] Error occurred: {e}")
+    finally:
+        connectionSocket.close()
+        print(f"[{addr}] Connection closed.\n")
+
+
+def start_server():
+    host = '127.0.0.1'
+    port = 8889
+
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serverSocket.bind((host, port))
+    serverSocket.listen(1)
+    print(f"[SERVER] Single-threaded server is running on http://{host}:{port}")
+
+    while True:
+        connectionSocket, addr = serverSocket.accept()
+        handle_client(connectionSocket, addr)
+
+
+if __name__ == "__main__":
+    start_server()
